@@ -1,3 +1,6 @@
 [submodule "cuttontail-blog/themes/paper"]
 	path = cuttontail-blog/themes/paper
 	url = https://github.com/nanxiaobei/hugo-paper
+[submodule "themes/ananke"]
+	path = themes/ananke
+	url = https://github.com/theNewDynamic/gohugo-theme-ananke.git
