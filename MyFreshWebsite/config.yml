@@ -1,9 +1,9 @@
 # If your site is in 'https', then make sure your base url isn't written using 'http' otherwise your sitemap would
 # contain http (as opposeed to https) URLs. This would affect Google indexing of your URLs.
-baseURL: "https://leyang-xia.github.io/"
+baseURL: "https://xly.icu/"
 title: PaperMod
 paginate: 5
-theme: [hugo-PaperMod]
+theme: [PaperMod]
 
 enableInlineShortcodes: true
 enableRobotsTXT: true
