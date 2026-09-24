@@ -195,6 +195,12 @@ def article(post: dict) -> str:
     return layout(post["title"], post["summary"], "../../", "writing", content)
 
 
+def not_found() -> str:
+    content = '''<section class="page-intro container"><p class="eyebrow">404 / PAGE NOT FOUND</p><h1>这里没有页面。<br><span>换个地方看看。</span></h1><p>你访问的地址可能已经变更。可以回到首页，或从文章列表继续浏览。</p></section>
+    <section class="container end-cta"><p>继续探索</p><div><a class="inline-link" href="/">返回首页 ↗</a>　<a class="inline-link" href="/writing/">浏览文章 ↗</a></div></section>'''
+    return layout("页面未找到", "你访问的页面不存在。", "/", "", content)
+
+
 def write(path: str, content: str) -> None:
     target = OUT / path
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -203,9 +209,10 @@ def write(path: str, content: str) -> None:
 
 if __name__ == "__main__":
     write("index.html", home())
+    write("404.html", not_found())
     write("writing/index.html", writing())
     write("work/index.html", work())
     write("about/index.html", about())
     for item in POSTS:
         write(f"writing/{item['slug']}/index.html", article(item))
-    print(f"Built {4 + len(POSTS)} pages in {OUT}")
+    print(f"Built {5 + len(POSTS)} pages in {OUT}")
