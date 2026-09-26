@@ -1,7 +1,12 @@
 """Build the dependency-free static personal site into dist/."""
 
+from datetime import date
 from html import escape
+import os
 from pathlib import Path
+import re
+import shutil
+import json
 
 
 ROOT = Path(__file__).parent
@@ -14,6 +19,7 @@ POSTS = [
         "category": "技术 / 实验方法",
         "summary": "从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？",
         "number": "01",
+        "status": "sample", "published_at": None, "tags": ["实验方法"], "cover": None,
         "sections": [
             ("从问题开始", [
                 "做音频实验时，很容易先得到一张漂亮的图，再回头想它说明什么。更可靠的顺序是先写下问题：我们想比较的是编解码器、丢包恢复策略，还是整条实时链路的体验？问题不同，实验边界也不同。",
@@ -35,6 +41,7 @@ POSTS = [
         "category": "技术 / 实时音频",
         "summary": "相同的平均丢包率，可能听起来完全不同。理解连续丢包、恢复策略与缓冲延迟之间的取舍。",
         "number": "02",
+        "status": "sample", "published_at": None, "tags": ["实时音频"], "cover": None,
         "sections": [
             ("平均值会藏起形状", [
                 "一次通话丢掉百分之五的数据包，听感并不由“百分之五”单独决定。零散的单包丢失，和集中发生的一串丢失，会给接收端留下完全不同的恢复任务。",
@@ -56,6 +63,7 @@ POSTS = [
         "category": "日常 / 随笔",
         "summary": "做事之外，也需要一些不急着产出结果的时刻。关于节奏、注意力和日常的小小记录。",
         "number": "03",
+        "status": "sample", "published_at": None, "tags": ["随笔"], "cover": None,
         "sections": [
             ("不急着命名", [
                 "很多时候，我们习惯迅速给一件事归类：有用或无用，进步或停滞，值得或不值得。判断带来效率，也会让一些细节在被看清之前就消失。",
@@ -74,6 +82,36 @@ def link(root: str, path: str = "") -> str:
     return root + path
 
 
+def validate_posts(posts: list[dict]) -> None:
+    slugs = [post['slug'] for post in posts]
+    if len(slugs) != len(set(slugs)):
+        raise ValueError('duplicate slug')
+    for post in posts:
+        if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', post['slug']):
+            raise ValueError('invalid slug')
+        if post['status'] not in {'sample', 'published'}:
+            raise ValueError('invalid status')
+        if not post.get('title') or not post.get('summary') or not isinstance(post.get('tags'), list):
+            raise ValueError('missing article metadata')
+        if post['status'] == 'published':
+            if not post.get('published_at'):
+                raise ValueError('published_at is required')
+            date.fromisoformat(post['published_at'])
+        elif post.get('published_at'):
+            raise ValueError('sample must not set published_at')
+        if post.get('cover'):
+            cover = Path(post['cover'])
+            if cover.is_absolute() or '..' in cover.parts or not cover.parts or cover.parts[0] != 'assets' or not (OUT / cover).is_file():
+                raise ValueError('cover must be an existing file in assets')
+
+
+def split_posts(posts: list[dict]) -> tuple[list[dict], list[dict]]:
+    published = sorted((post for post in posts if post['status'] == 'published'),
+                       key=lambda post: post['published_at'], reverse=True)
+    samples = [post for post in posts if post['status'] == 'sample']
+    return published, samples
+
+
 def search_dialog(root: str) -> str:
     items = []
     for post in POSTS:
@@ -82,11 +120,11 @@ def search_dialog(root: str) -> str:
             for heading, paragraphs in post["sections"]
         )
         items.append((
-            f'writing/{post["slug"]}/', post["category"],
-            post["title"], post["summary"], body,
+            f'writing/{post["slug"]}/', '示例稿' if post['status'] == 'sample' else '文章',
+            post["title"], post["summary"], ' '.join(post['tags']) + ' ' + body,
         ))
     items.extend([
-        ("work/", "页面", "研究方向", "实时语音、网络条件与压缩系统。", "音频 编解码 丢包 抖动 体验评估 信息压缩 表示 系统设计"),
+        ("guestbook/", "页面", "留言板", "欢迎留下你的想法。", "留言 评论 讨论"),
         ("about/", "页面", "关于 Leyang", "关于我和这个网站。", "个人介绍 技术探索 日常记录 GitHub"),
     ])
     results = "".join(
@@ -102,11 +140,12 @@ def search_dialog(root: str) -> str:
   </dialog>'''
 
 
-def layout(title: str, description: str, root: str, current: str, content: str) -> str:
+def layout(title: str, description: str, root: str, current: str, content: str, comments: bool = False) -> str:
+    comments_script = f'<script src="{link(root, "assets/comments.js")}" defer></script>' if comments else ''
     nav = [
         ("首页", "", "home"),
-        ("文章", "writing/", "writing"),
-        ("研究", "work/", "work"),
+        ("文库", "writing/", "writing"),
+        ("留言板", "guestbook/", "guestbook"),
         ("关于", "about/", "about"),
     ]
     nav_html = "".join(
@@ -124,6 +163,7 @@ def layout(title: str, description: str, root: str, current: str, content: str) 
   <script>(function(){{var t;try{{t=localStorage.getItem('lx-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var m=String(document.cookie||'').match(/(?:^|; )lx-theme=(dark|light)(?:;|$)/);t=m&&m[1]}}if(t!=='light'&&t!=='dark')t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}})();</script>
   <link rel="stylesheet" href="{link(root, 'assets/site.css')}">
   <script src="{link(root, 'assets/site.js')}" defer></script>
+{comments_script}
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b1d21'/%3E%3Cpath d='M17 17v30h17M46 17 28 47' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -142,57 +182,103 @@ def layout(title: str, description: str, root: str, current: str, content: str) 
 
 def post_row(post: dict, root: str) -> str:
     href = link(root, f'writing/{post["slug"]}/')
-    return f'''<a class="post-row" href="{href}">
-      <span class="post-index">{post['number']}</span>
-      <span class="post-main"><span class="post-category">{post['category']}</span><strong>{post['title']}</strong><span class="post-summary">{post['summary']}</span></span>
+    when = post['published_at'] if post['status'] == 'published' else '示例稿'
+    tags = '|'.join(post['tags'])
+    return f'''<a class="post-row" href="{escape(href, quote=True)}" data-tags="{escape(tags, quote=True)}">
+      <span class="post-index">{escape(when)}</span>
+      <span class="post-main"><span class="post-category">{escape(' · '.join(post['tags']))}</span><strong>{escape(post['title'])}</strong><span class="post-summary">{escape(post['summary'])}</span></span>
       <span class="post-arrow" aria-hidden="true">↗</span>
     </a>'''
 
 
+def tag_links(posts: list[dict], root: str) -> str:
+    from urllib.parse import quote
+    tags = list(dict.fromkeys(tag for post in posts for tag in post['tags']))
+    return ''.join(f'<a class="tag-link" href="{root}writing/?tag={quote(tag)}">{escape(tag)}</a>' for tag in tags)
+
+
 def home() -> str:
-    rows = "".join(post_row(p, "./") for p in POSTS)
-    content = f'''<section class="home-hero container">
-      <div class="hero-main"><p class="eyebrow">LEYANG XIA / 个人网站</p><h1>把复杂的事，<br><span>慢慢讲清楚。</span></h1><p class="hero-description">这里记录我对实时音频、网络传输和信息压缩的探索，也写工作之外那些值得停下来想一想的事。</p><a class="inline-link" href="./writing/">浏览文章 <span aria-hidden="true">↗</span></a></div>
-      <div class="hero-side"><span class="side-line"></span><p>技术是理解世界的一种方式。写作让理解变得更清晰。</p><span class="side-mark">NOTES ON MAKING &amp; LIVING</span></div>
-    </section>
-    <section class="container content-section" aria-labelledby="featured-title"><div class="section-top"><div><p class="eyebrow">SELECTED WRITING</p><h2 id="featured-title">文章与随笔</h2></div><a class="quiet-link" href="./writing/">全部文章 ↗</a></div><div class="post-list">{rows}</div><p class="draft-note">当前文章为展示版式的示例稿，正式发布前可替换为你的原文。</p></section>
-    <section class="container focus-section" aria-labelledby="focus-title"><div><p class="eyebrow">FOCUS</p><h2 id="focus-title">长期关注的问题</h2></div><div class="focus-copy"><p>语音穿过不稳定网络之后，怎样依然清晰、自然？一个实验的结果，怎样经得起重复与比较？这些问题把系统、算法和人的感受连在一起。</p><a class="inline-link" href="./work/">了解我的研究方向 <span aria-hidden="true">↗</span></a></div></section>'''
-    return layout("首页", "Leyang Xia 的个人网站，记录技术探索、研究方向与日常随笔。", "./", "home", content)
+    published, samples = split_posts(POSTS)
+    available = published or samples
+    feature = available[0] if available else None
+    if feature:
+        feature_href = f'./writing/{feature["slug"]}/'
+        cover = (f'<img src="./{escape(feature["cover"], quote=True)}" alt="" loading="lazy">'
+                 if feature.get('cover') else '<span class="feature-art" aria-hidden="true">LX / NOTES</span>')
+        feature_card = f'<a class="feature-card" href="{feature_href}">{cover}<span class="feature-copy"><small>{"示例稿" if feature["status"] == "sample" else escape(feature["published_at"])}</small><strong>{escape(feature["title"])}</strong><span>{escape(feature["summary"])}</span><b>阅读文章 ↗</b></span></a>'
+    else:
+        feature_card = '<p class="sample-explainer">暂无文章，欢迎稍后再来。</p>'
+    rows = ''.join(post_row(post, './') for post in available[1:4])
+    recent = ''.join(f'<a href="./writing/{escape(post["slug"], quote=True)}/">{escape(post["title"])}</a>'
+                     for post in available[:3])
+    content = f'''<div class="home-grid container">
+      <div class="home-main"><section class="home-intro"><p class="eyebrow">LEYANG XIA / NOTES</p>
+      <h1>记录值得分享的发现。</h1><p>这里写有意思的技术、学习路上的问题，也留下一些日常里的想法。</p></section>
+      <section class="home-feature" aria-labelledby="feature-heading"><div class="section-top"><div><p class="eyebrow">START HERE</p><h2 id="feature-heading">从这里读起</h2></div><a class="quiet-link" href="./writing/">进入文库 ↗</a></div>
+      {feature_card}</section>
+      <section class="latest-writing"><div class="section-top"><div><p class="eyebrow">MORE TO READ</p><h2>继续阅读</h2></div></div><div class="post-list">{rows}</div></section>
+      <section class="home-tags"><h2>按标签探索</h2><div class="tag-list">{tag_links(available, './')}</div></section>
+      </div><aside class="profile-card" aria-label="关于作者"><div class="profile-monogram" aria-hidden="true">LX</div><p class="eyebrow">ABOUT ME</p><h2>Leyang Xia</h2><p>喜欢把学到的东西写清楚，也记录工作和生活中的小发现。</p><div class="profile-links"><a href="./about/">关于我 ↗</a><a href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div><div class="profile-recent"><strong>最近文章</strong>{recent}</div></aside>
+    </div>'''
+    return layout('首页', '技术分享、学习记录和生活随笔。', './', 'home', content)
 
 
 def writing() -> str:
-    rows = "".join(post_row(p, "../") for p in POSTS)
-    content = f'''<section class="page-intro container"><p class="eyebrow">WRITING / 文章</p><h1>写下来，<br><span>才能想得更清楚。</span></h1><p>技术笔记、研究方法，以及工作之外的观察。每一篇都从一个具体的问题开始。</p></section>
-    <section class="container listing-section" aria-label="文章列表"><div class="listing-head"><span>全部文章</span><span>共 {len(POSTS)} 篇</span></div><div class="post-list">{rows}</div><p class="draft-note">这些文章是用于展示网站结构的示例稿，等待替换为你的正式内容。</p></section>'''
-    return layout("文章", "技术笔记与日常随笔。", "../", "writing", content)
-
-
-def work() -> str:
-    content = '''<section class="page-intro container"><p class="eyebrow">FOCUS / 研究方向</p><h1>从真实问题，<br><span>走向可验证的答案。</span></h1><p>我关心音频与网络交汇处的工程问题，也在意结论能否被复现、被解释、被真正用起来。</p></section>
-    <section class="container work-list" aria-label="关注的方向">
-      <article class="work-item"><span class="work-num">01 / AUDIO</span><div><h2>实时语音与编解码</h2><p>低延迟通信里，音质、带宽和计算成本总在互相拉扯。我关注编码、冗余与恢复策略如何影响最终的通话体验。</p></div></article>
-      <article class="work-item"><span class="work-num">02 / NETWORK</span><div><h2>网络条件与体验评估</h2><p>丢包和抖动不只是一组百分比。把网络轨迹、接收行为和可播放结果放在一起，才能看清一次改进究竟带来了什么。</p></div></article>
-      <article class="work-item"><span class="work-num">03 / SYSTEMS</span><div><h2>压缩、表示与系统设计</h2><p>从紧凑的数据表示到完整链路的实现，好的设计需要清楚的边界、可解释的取舍和经得起验证的结果。</p></div></article>
-    </section>
-    <section class="container end-cta"><p>这些方向还在不断变化，文章里会记录具体问题与思考过程。</p><a class="inline-link" href="../writing/">读一些文章 <span aria-hidden="true">↗</span></a></section>'''
-    return layout("研究方向", "Leyang Xia 关注实时音频、网络评估与信息压缩。", "../", "work", content)
+    from itertools import groupby
+    published, samples = split_posts(POSTS)
+    years = []
+    for year, group in groupby(published, key=lambda post: post['published_at'][:4]):
+        rows = ''.join(post_row(post, '../') for post in group)
+        years.append(f'<section class="archive-year"><h2>{year}</h2><div class="post-list">{rows}</div></section>')
+    sample_rows = ''.join(post_row(post, '../') for post in samples)
+    sample_section = (f'<section class="sample-section"><div class="section-top"><div><p class="eyebrow">LAYOUT PREVIEW</p><h2>版式预览</h2></div></div><p class="sample-explainer">以下内容是示例稿，用来展示阅读版式，尚未作为正式文章发布。</p><div class="post-list">{sample_rows}</div></section>' if samples else '')
+    all_posts = published + samples
+    content = f'''<section class="page-intro container"><p class="eyebrow">WRITING / 文库</p><h1>文库。</h1><p>技术、学习与日常。循着问题写，也允许想法慢慢生长。</p></section>
+    <section class="container listing-section"><div class="listing-head"><span>所有内容</span><span>共 {len(all_posts)} 篇</span></div>
+    <div class="tag-list archive-tags"><a class="tag-link" href="../writing/">全部</a>{tag_links(all_posts, '../')}</div>
+    {''.join(years)}{sample_section}</section>'''
+    return layout('文库', '技术分享、学习记录与生活随笔。', '../', 'writing', content)
 
 
 def about() -> str:
-    content = '''<section class="page-intro container"><p class="eyebrow">ABOUT / 关于</p><h1>你好，<br><span>我是 Leyang。</span></h1><p>喜欢追问一个系统为什么这样工作，也喜欢把复杂问题拆开，再用清楚的语言重新讲出来。</p></section>
-    <section class="container about-layout"><div class="about-label">A LITTLE MORE</div><div class="prose"><p>我的兴趣常常落在实时音频、网络传输和信息压缩的交叉处：从一个具体的现象出发，沿着数据与代码追下去，再回到人实际听见、感受到的结果。</p><p>这个网站是一个开放的笔记本。技术文章会尽量交代问题、方法与边界；日常随笔则留给那些暂时不需要结论的观察。</p><p>如果你对相似的问题感兴趣，可以从文章开始，也可以看看我的公开代码。</p><p><a class="inline-link" href="../writing/">阅读文章 <span aria-hidden="true">↗</span></a><br><a class="inline-link" href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">访问 GitHub <span aria-hidden="true">↗</span></a></p></div></section>'''
-    return layout("关于", "关于 Leyang Xia：技术探索与日常记录。", "../", "about", content)
+    content = '''<section class="page-intro container"><p class="eyebrow">ABOUT / 关于</p><h1>你好，<br><span>我是 Leyang。</span></h1><p>这里是我分享发现、整理学习过程和记录生活的地方。</p></section>
+    <section class="container about-layout"><div class="about-label">A LITTLE MORE</div><div class="prose"><p>我喜欢从一个具体问题出发，沿着代码和现象追下去，再试着用清楚的话讲出来。</p><p>有些文章分享有意思的技术，有些记录尚在学习的过程；生活中的观察也会出现在这里。</p><p>如果你读到感兴趣的内容，欢迎去文库继续探索，或在留言板打个招呼。</p><p><a class="inline-link" href="../writing/">进入文库 ↗</a><br><a class="inline-link" href="../guestbook/">前往留言板 ↗</a></p></div></section>'''
+    return layout("关于", "关于 Leyang Xia 和这个网站。", "../", "about", content)
+
+
+def comment_shell(path: str, env_id: str | None) -> str:
+    address = escape(env_id or '', quote=True)
+    initial = '加载留言中…' if env_id else '评论暂不可用'
+    return (f'<section class="comment-section" aria-labelledby="comment-heading"><h2 id="comment-heading">讨论</h2>'
+            '<p class="comment-explainer">无需登录。昵称和内容必填，邮箱选填且不会公开；提交后会显示“等待审核”，留言与回复经审核后公开。</p>'
+            f'<div id="comments" data-thread-path="{escape(path, quote=True)}" data-env-id="{address}" role="status">{initial}</div></section>')
 
 
 def article(post: dict) -> str:
-    paragraphs = "".join(
-        f'<section><h2>{heading}</h2>' + "".join(f'<p>{paragraph}</p>' for paragraph in items) + '</section>'
-        for heading, items in post["sections"]
+    paragraphs = ''.join(
+        f'<section><h2>{escape(heading)}</h2>' + ''.join(f'<p>{escape(paragraph)}</p>' for paragraph in items) + '</section>'
+        for heading, items in post['sections']
     )
-    other = [p for p in POSTS if p is not post]
-    next_post = other[0]
-    content = f'''<article class="article-page container"><div class="article-narrow"><a class="back-link" href="../../writing/">← 返回文章列表</a><p class="eyebrow">{post['category']}</p><h1>{post['title']}</h1><p class="article-deck">{post['summary']}</p><div class="article-meta"><span>示例稿</span><span>LEYANG XIA</span></div><div class="article-body">{paragraphs}</div><div class="article-end"><p>写作是持续修正理解的过程。</p><a class="inline-link" href="../../writing/">返回全部文章 <span aria-hidden="true">↗</span></a></div></div><div class="read-next"><span class="eyebrow">NEXT READ</span><a href="../{next_post['slug']}/">{next_post['title']} <span aria-hidden="true">↗</span></a></div></article>'''
-    return layout(post["title"], post["summary"], "../../", "writing", content)
+    other = [p for p in POSTS if p['slug'] != post['slug']]
+    next_link = (f'<div class="read-next"><span class="eyebrow">NEXT READ</span><a href="../{escape(other[0]["slug"], quote=True)}/">{escape(other[0]["title"])} ↗</a></div>' if other else '')
+    published = post['status'] == 'published'
+    when = post['published_at'] if published else '示例稿'
+    cover = (f'<figure class="article-cover"><img src="../../{escape(post["cover"], quote=True)}" alt="" loading="lazy"></figure>' if post.get('cover') else '')
+    from urllib.parse import quote
+    tags = ''.join(f'<a class="tag-link" href="../../writing/?tag={quote(tag)}">{escape(tag)}</a>' for tag in post['tags'])
+    content = f'''<article class="article-page container"><div class="article-narrow"><a class="back-link" href="../../writing/">← 返回文库</a>
+      <p class="eyebrow">{'ARTICLE' if published else 'PREVIEW / 示例稿'}</p><h1>{escape(post['title'])}</h1><p class="article-deck">{escape(post['summary'])}</p>
+      <div class="article-meta"><span>{escape(when)}</span><span>LEYANG XIA</span></div>{cover}<div class="tag-list article-tags">{tags}</div>
+      <div class="article-body">{paragraphs}</div><div class="article-end"><a class="inline-link" href="../../writing/">返回文库 ↗</a></div>
+      {comment_shell('/writing/' + post['slug'] + '/', os.getenv('TWIKOO_ENV_ID'))}</div>{next_link}</article>'''
+    return layout(post['title'], post['summary'], '../../', 'writing', content, comments=True)
+
+
+def guestbook() -> str:
+    content = ('<section class="page-intro container"><p class="eyebrow">GUESTBOOK / 留言板</p><h1>留下几句话。</h1>'
+               '<p>关于一篇文章、一个问题，或最近的生活，都欢迎在这里聊聊。</p></section>'
+               '<section class="container guestbook-content">' + comment_shell('/guestbook/', os.getenv('TWIKOO_ENV_ID')) + '</section>')
+    return layout('留言板', '欢迎留下你的想法。', '../', 'guestbook', content, comments=True)
 
 
 def not_found() -> str:
@@ -207,12 +293,47 @@ def write(path: str, content: str) -> None:
     target.write_text(content + "\n", encoding="utf-8")
 
 
-if __name__ == "__main__":
-    write("index.html", home())
-    write("404.html", not_found())
-    write("writing/index.html", writing())
-    write("work/index.html", work())
-    write("about/index.html", about())
+def remove_stale_generated_files(out: Path, publish_root: Path, old_paths: set[str], new_paths: set[str]) -> None:
+    for relative in old_paths - new_paths:
+        route = Path(relative)
+        if route.is_absolute() or '..' in route.parts or route.suffix != '.html':
+            raise ValueError(f'invalid generated route: {relative}')
+        for base in (out, publish_root):
+            target = base / route
+            target.unlink(missing_ok=True)
+            parent = target.parent
+            while parent != base:
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
+
+
+def build_site() -> None:
+    validate_posts(POSTS)
+    pages = {
+        'index.html': home(),
+        '404.html': not_found(),
+        'writing/index.html': writing(),
+        'guestbook/index.html': guestbook(),
+        'about/index.html': about(),
+    }
     for item in POSTS:
-        write(f"writing/{item['slug']}/index.html", article(item))
-    print(f"Built {5 + len(POSTS)} pages in {OUT}")
+        pages[f"writing/{item['slug']}/index.html"] = article(item)
+    manifest = OUT / '.generated-pages.json'
+    old_paths = set(json.loads(manifest.read_text(encoding='utf-8'))) if manifest.exists() else {'work/index.html'}
+    remove_stale_generated_files(OUT, ROOT.parent, old_paths, set(pages))
+    for path, content in pages.items():
+        write(path, content)
+    manifest.write_text(json.dumps(sorted(pages), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    for source in [*(OUT / path for path in pages), *(OUT / 'assets').rglob('*')]:
+        if source.is_file():
+            target = ROOT.parent / source.relative_to(OUT)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+    print(f"Built {len(pages)} pages in {OUT} and copied to repository root")
+
+
+if __name__ == '__main__':
+    build_site()

@@ -1,4 +1,26 @@
 (() => {
+  function visibleForTag(rowTags, selectedTag, allTags) {
+    return !selectedTag || !allTags.includes(selectedTag) || rowTags.includes(selectedTag);
+  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { visibleForTag };
+  if (typeof document === 'undefined') return;
+
+  const archiveRows = Array.from(document.querySelectorAll('.listing-section [data-tags]'));
+  if (archiveRows.length) {
+    const selectedTag = new URLSearchParams(location.search).get('tag');
+    const allTags = [...new Set(archiveRows.flatMap(row => row.dataset.tags.split('|')))];
+    for (const row of archiveRows) {
+      row.hidden = !visibleForTag(row.dataset.tags.split('|'), selectedTag, allTags);
+    }
+    for (const section of document.querySelectorAll('.archive-year, .sample-section')) {
+      section.hidden = !section.querySelector('.post-row:not([hidden])');
+    }
+    for (const tagLink of document.querySelectorAll('.archive-tags a')) {
+      const tag = new URL(tagLink.href).searchParams.get('tag');
+      if (tag === selectedTag || (!selectedTag && !tag)) tagLink.setAttribute('aria-current', 'true');
+    }
+  }
+
   const themeButton = document.getElementById('theme-toggle');
   const themeColor = document.querySelector('meta[name="theme-color"]');
 

@@ -4,23 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f9fa">
-  <meta name="description" content="关于 Leyang Xia 和这个网站。">
-  <title>关于 · Leyang Xia</title>
+  <meta name="description" content="欢迎留下你的想法。">
+  <title>留言板 · Leyang Xia</title>
   <script>(function(){var t;try{t=localStorage.getItem('lx-theme')}catch(e){}if(t!=='light'&&t!=='dark'){var m=String(document.cookie||'').match(/(?:^|; )lx-theme=(dark|light)(?:;|$)/);t=m&&m[1]}if(t!=='light'&&t!=='dark')t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t})();</script>
   <link rel="stylesheet" href="../assets/site.css">
   <script src="../assets/site.js" defer></script>
-
+<script src="../assets/comments.js" defer></script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b1d21'/%3E%3Cpath d='M17 17v30h17M46 17 28 47' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
   <a class="skip-link" href="#content">跳转到正文</a>
   <header class="site-header"><div class="container header-inner">
     <a class="wordmark" href="../" aria-label="Leyang Xia，返回首页">Leyang Xia<span class="wordmark-dot">.</span></a>
-    <nav class="nav-links" aria-label="主导航"><a href="../">首页</a><a href="../writing/">文库</a><a href="../guestbook/">留言板</a><a href="../about/" aria-current="page">关于</a></nav>
+    <nav class="nav-links" aria-label="主导航"><a href="../">首页</a><a href="../writing/">文库</a><a href="../guestbook/" aria-current="page">留言板</a><a href="../about/">关于</a></nav>
     <div class="header-actions"><button class="icon-button" id="search-toggle" type="button" aria-label="打开搜索" title="搜索" aria-haspopup="dialog" aria-controls="site-search" hidden><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><button class="icon-button" id="theme-toggle" type="button" aria-label="切换颜色模式" title="切换颜色模式" hidden><svg class="moon-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M20.1 15.5A8.4 8.4 0 0 1 8.5 3.9 8.6 8.6 0 1 0 20.1 15.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><svg class="sun-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.8" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
   </div></header>
-  <main id="content"><section class="page-intro container"><p class="eyebrow">ABOUT / 关于</p><h1>你好，<br><span>我是 Leyang。</span></h1><p>这里是我分享发现、整理学习过程和记录生活的地方。</p></section>
-    <section class="container about-layout"><div class="about-label">A LITTLE MORE</div><div class="prose"><p>我喜欢从一个具体问题出发，沿着代码和现象追下去，再试着用清楚的话讲出来。</p><p>有些文章分享有意思的技术，有些记录尚在学习的过程；生活中的观察也会出现在这里。</p><p>如果你读到感兴趣的内容，欢迎去文库继续探索，或在留言板打个招呼。</p><p><a class="inline-link" href="../writing/">进入文库 ↗</a><br><a class="inline-link" href="../guestbook/">前往留言板 ↗</a></p></div></section></main>
+  <main id="content"><section class="page-intro container"><p class="eyebrow">GUESTBOOK / 留言板</p><h1>留下几句话。</h1><p>关于一篇文章、一个问题，或最近的生活，都欢迎在这里聊聊。</p></section><section class="container guestbook-content"><section class="comment-section" aria-labelledby="comment-heading"><h2 id="comment-heading">讨论</h2><p class="comment-explainer">无需登录。昵称和内容必填，邮箱选填且不会公开；提交后会显示“等待审核”，留言与回复经审核后公开。</p><div id="comments" data-thread-path="/guestbook/" data-env-id="" role="status">评论暂不可用</div></section></section></main>
   <dialog class="search-dialog" id="site-search" aria-labelledby="search-title">
     <div class="search-head"><div><p class="eyebrow">SEARCH / 站内搜索</p><h2 id="search-title">寻找一篇文章</h2></div><button class="icon-button search-close" type="button" aria-label="关闭搜索" title="关闭搜索">×</button></div>
     <label class="search-field"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="search-query" type="search" placeholder="搜索文章、主题…" autocomplete="off" aria-label="搜索文章和页面"></label>
