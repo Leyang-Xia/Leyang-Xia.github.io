@@ -22,6 +22,13 @@ node personal-site/tests/test_comments_client.js
 python3 personal-site/build.py
 ```
 
-生成器把页面写入 `personal-site/dist/`，再同步到仓库根目录。样式和脚本源文件位于 `personal-site/dist/assets/`。确认变更后提交并推送 `main`；GitHub Pages 发布根目录文件。评论后端的部署与审核检查见 [`docs/comment-operations.md`](docs/comment-operations.md)。
+生成器把页面写入 `personal-site/dist/`，再同步到仓库根目录。样式和脚本源文件位于 `personal-site/dist/assets/`。评论后端的部署与审核检查见 [`docs/comment-operations.md`](docs/comment-operations.md)。
 
-Sites 预览与 GitHub Pages 独立，预览站不加载正式评论。
+## 发布顺序
+
+1. 本地编辑并运行上述测试与构建命令。
+2. **先同步到 [Sites 预览站](https://leyang-xia-notes.spicycurrykk.chatgpt.site/)**。Sites 使用独立源码仓库；同步 `personal-site/` 的源码与 `dist/`，部署新版本。
+3. 在 Sites 检查首页、文库和标签、文章、留言板、关于、404、搜索、明暗主题与手机布局；确认预览站不连接正式评论后端。发现问题先修改并重新预览。
+4. 预览通过后，才提交并推送 GitHub 仓库的 `main`。GitHub Pages 从仓库根目录发布[公开网站](https://leyang-xia.github.io/)。
+
+Sites 与 GitHub Pages 独立。以后修改网站时保持这个“Sites 验证 → 公开网站”顺序。
