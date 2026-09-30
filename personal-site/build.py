@@ -11,6 +11,7 @@ import json
 
 ROOT = Path(__file__).parent
 OUT = ROOT / "dist"
+TWIKOO_ENV_ID = os.getenv("TWIKOO_ENV_ID") or "https://leyang-twikoo.netlify.app/.netlify/functions/twikoo"
 
 POSTS = [
     {
@@ -213,7 +214,7 @@ def home() -> str:
                      for post in available[:3])
     content = f'''<div class="home-grid container">
       <div class="home-main"><section class="home-intro"><p class="eyebrow">LEYANG XIA / NOTES</p>
-      <h1>记录值得分享的发现。</h1><p>这里写有意思的技术、学习路上的问题，也留下一些日常里的想法。</p></section>
+      <h1>记录值得分享的<span class="no-wrap">发现。</span></h1><p>这里写有意思的技术、学习路上的问题，也留下一些日常里的想法。</p></section>
       <section class="home-feature" aria-labelledby="feature-heading"><div class="section-top"><div><p class="eyebrow">START HERE</p><h2 id="feature-heading">从这里读起</h2></div><a class="quiet-link" href="./writing/">进入文库 ↗</a></div>
       {feature_card}</section>
       <section class="latest-writing"><div class="section-top"><div><p class="eyebrow">MORE TO READ</p><h2>继续阅读</h2></div></div><div class="post-list">{rows}</div></section>
@@ -270,14 +271,14 @@ def article(post: dict) -> str:
       <p class="eyebrow">{'ARTICLE' if published else 'PREVIEW / 示例稿'}</p><h1>{escape(post['title'])}</h1><p class="article-deck">{escape(post['summary'])}</p>
       <div class="article-meta"><span>{escape(when)}</span><span>LEYANG XIA</span></div>{cover}<div class="tag-list article-tags">{tags}</div>
       <div class="article-body">{paragraphs}</div><div class="article-end"><a class="inline-link" href="../../writing/">返回文库 ↗</a></div>
-      {comment_shell('/writing/' + post['slug'] + '/', os.getenv('TWIKOO_ENV_ID'))}</div>{next_link}</article>'''
+      {comment_shell('/writing/' + post['slug'] + '/', TWIKOO_ENV_ID)}</div>{next_link}</article>'''
     return layout(post['title'], post['summary'], '../../', 'writing', content, comments=True)
 
 
 def guestbook() -> str:
     content = ('<section class="page-intro container"><p class="eyebrow">GUESTBOOK / 留言板</p><h1>留下几句话。</h1>'
                '<p>关于一篇文章、一个问题，或最近的生活，都欢迎在这里聊聊。</p></section>'
-               '<section class="container guestbook-content">' + comment_shell('/guestbook/', os.getenv('TWIKOO_ENV_ID')) + '</section>')
+               '<section class="container guestbook-content">' + comment_shell('/guestbook/', TWIKOO_ENV_ID) + '</section>')
     return layout('留言板', '欢迎留下你的想法。', '../', 'guestbook', content, comments=True)
 
 

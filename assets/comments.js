@@ -32,7 +32,7 @@
   target.id = 'tcomment';
   shell.appendChild(target);
   const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/twikoo@2.0.9/dist/twikoo.min.js';
+  script.src = 'https://cdn.jsdelivr.net/npm/twikoo@2.0.12/dist/twikoo.min.js';
   script.async = true;
   script.onerror = () => { shell.textContent = commentStatus('error'); };
   script.onload = () => {

@@ -84,6 +84,10 @@ class PageTests(TestCase):
         self.assertIn('class="profile-card"', page)
         self.assertNotIn('>研究</a>', page)
 
+    def test_home_headline_keeps_last_word_together(self):
+        page = build.home()
+        self.assertIn('class="no-wrap">发现。</span>', page)
+
     def test_empty_article_collection_still_builds_home(self):
         with patch.object(build, 'POSTS', []):
             page = build.home()
@@ -129,6 +133,13 @@ class PageTests(TestCase):
 
 
 class CommentTests(TestCase):
+    def test_guestbook_uses_public_twikoo_backend(self):
+        page = build.guestbook()
+        self.assertIn(
+            'data-env-id="https://leyang-twikoo.netlify.app/.netlify/functions/twikoo"',
+            page,
+        )
+
     def test_thread_uses_site_path(self):
         shell = build.comment_shell('/writing/example/', 'https://comments.example.net')
         self.assertIn('data-thread-path="/writing/example/"', shell)
