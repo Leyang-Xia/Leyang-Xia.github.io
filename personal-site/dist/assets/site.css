@@ -200,3 +200,11 @@ h1,h2,h3{letter-spacing:-.065em}
 .article-body .contains-task-list{list-style:none;padding-left:1.25em}
 .article-body .task-list-item>input{margin:0 8px 0 -1.25em;accent-color:var(--accent)}
 @media(max-width:600px){.article-body ul,.article-body ol{font-size:18px}.article-body pre{padding:16px;font-size:14px}.article-body h3{font-size:23px}.article-body th,.article-body td{padding:10px 12px}.article-body blockquote{padding-left:18px}}
+
+.article-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;border-top:1px solid var(--line);padding:38px 0 70px}
+.article-navigation a{display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
+.article-navigation a[rel=next]{grid-column:2;text-align:right}
+.article-navigation span{font-size:13px;color:var(--muted)}
+.article-navigation strong{font-size:21px;font-weight:650;line-height:1.6}
+.article-navigation a:hover strong{color:var(--accent)}
+@media(max-width:600px){.article-navigation{gap:18px}.article-navigation strong{font-size:18px}}

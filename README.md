@@ -59,6 +59,29 @@ GitHub Actions 在 push、PR 和手动触发时运行上述测试、重新构建
 
 评论后端的部署与审核检查见 [`docs/comment-operations.md`](docs/comment-operations.md)。
 
+## 搜索引擎、分享与订阅
+
+所有页面生成固定正式域名的 canonical、Open Graph 和 Twitter Card；文库的标签查询链接统一 canonical 到 `/writing/`。示例稿和 404 页面使用 `noindex, follow`，仍可在站内阅读与搜索。不要在 robots 中屏蔽示例稿抓取，否则搜索引擎无法读取 noindex。
+
+构建同时生成并同步 `robots.txt`、`sitemap.xml`、`feed.xml`。sitemap 包含首页、文库、关于、留言板及正式文章；RSS 仅包含正式文章，尚无正式文章时是有效的空订阅源。页脚提供 RSS 入口。日期来自文章 front matter，构建不添加当前时间或虚构更新时间，RSS 将发布日期表示为当日 UTC 零点。
+
+默认分享图为 `personal-site/dist/assets/share-default.png`（1200 × 630）。文章可添加可选字段：
+
+```yaml
+share_image: assets/my-article-share.png
+share_image_alt: 这张图片展示的内容
+```
+
+分享图须为资源目录中实际存在的 PNG、JPEG 或 WebP。未指定时优先采用这些格式的封面，否则使用默认分享图。分享平台的显示效果和缓存刷新需要在发布后验证。首页生成 WebSite/Person JSON-LD，正式文章生成 BlogPosting；示例稿不生成正式文章结构化数据。
+
+文章上一篇/下一篇按日期倒序计算（上一篇较新，下一篇较旧），同日按 slug 倒序固定顺序；示例稿只在自己的编号顺序中导航。正式文章日期使用 `<time datetime>`。发布前构建会检查站内路径、本地图片、页内锚点、搜索结果及 sitemap/RSS 链接，错误会列出页面和目标。检查不请求外部网站，不代表外链和远程图片始终可用。
+
+可单独运行：
+
+```sh
+python3 -S personal-site/check_links.py
+```
+
 ## 发布顺序
 
 1. 本地编辑并运行上述测试与构建命令。

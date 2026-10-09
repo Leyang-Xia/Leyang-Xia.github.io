@@ -29,6 +29,7 @@ jobs:
       - name: Build and check committed output
         run: |
           python3 -S personal-site/build.py
+          python3 -S personal-site/check_links.py
           git diff --exit-code
           if [ -n "$(git ls-files --others --exclude-standard)" ]; then
             echo "New generated files must also be committed:"

@@ -6,8 +6,9 @@ from pathlib import Path
 import re
 from markdown_renderer import render_markdown
 
-FIELDS = {'slug', 'title', 'category', 'summary', 'number', 'status',
+REQUIRED_FIELDS = {'slug', 'title', 'category', 'summary', 'number', 'status',
           'published_at', 'tags', 'cover'}
+FIELDS = REQUIRED_FIELDS | {'share_image', 'share_image_alt'}
 
 
 def scalar(value: str) -> str | None:
@@ -59,7 +60,7 @@ def parse_front_matter(source: str) -> tuple[dict, str]:
             metadata[key] = []
         else:
             metadata[key] = scalar(value or '')
-    missing = FIELDS - metadata.keys()
+    missing = REQUIRED_FIELDS - metadata.keys()
     if missing:
         raise ValueError('missing fields: ' + ', '.join(sorted(missing)))
     return metadata, '\n'.join(lines[end + 1:])
@@ -93,17 +94,24 @@ def validate_posts(posts: list[dict], assets_root: Path) -> None:
             date.fromisoformat(day)
         elif day is not None:
             raise ValueError('sample must not set published_at')
-        value = post.get('cover')
-        if value is not None:
+        for field in ('cover', 'share_image'):
+            value = post.get(field)
+            if value is None:
+                continue
             if not isinstance(value, str) or not value:
-                raise ValueError('cover must be blank or an asset path')
-            cover = Path(value)
+                raise ValueError(f'{field} must be blank or an asset path')
+            asset = Path(value)
             assets = (assets_root / 'assets').resolve()
-            target = (assets_root / cover).resolve()
-            if (cover.is_absolute() or '..' in cover.parts or '\\' in value
-                    or not cover.parts or cover.parts[0] != 'assets'
+            target = (assets_root / asset).resolve()
+            if (asset.is_absolute() or '..' in asset.parts or '\\' in value
+                    or not asset.parts or asset.parts[0] != 'assets'
                     or not target.is_relative_to(assets) or not target.is_file()):
-                raise ValueError('cover must be an existing file in assets')
+                raise ValueError(f'{field} must be an existing file in assets')
+            if field == 'share_image' and asset.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp'}:
+                raise ValueError('share_image must use PNG, JPEG or WebP')
+        alt = post.get('share_image_alt')
+        if alt is not None and (not isinstance(alt, str) or not alt.strip()):
+            raise ValueError('share_image_alt must be a nonempty string or blank')
 
 
 def load_posts(directory: Path, assets_root: Path) -> list[dict]:

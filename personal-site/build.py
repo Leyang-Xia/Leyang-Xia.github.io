@@ -6,6 +6,9 @@ from pathlib import Path
 import shutil
 import json
 
+from seo import metadata, discovery_files
+from check_links import check_site
+
 from content import load_posts, validate_posts as validate_content
 
 
@@ -26,7 +29,7 @@ def validate_posts(posts: list[dict]) -> None:
 
 def split_posts(posts: list[dict]) -> tuple[list[dict], list[dict]]:
     published = sorted((post for post in posts if post['status'] == 'published'),
-                       key=lambda post: post['published_at'], reverse=True)
+                       key=lambda post: (post['published_at'], post['slug']), reverse=True)
     samples = [post for post in posts if post['status'] == 'sample']
     return published, samples
 
@@ -56,7 +59,7 @@ def search_dialog(root: str) -> str:
   </dialog>'''
 
 
-def layout(title: str, description: str, root: str, current: str, content: str, comments: bool = False) -> str:
+def layout(title: str, description: str, root: str, current: str, content: str, comments: bool = False, *, path: str = "", post: dict | None = None, noindex: bool = False) -> str:
     comments_script = f'<script src="{link(root, "assets/comments.js")}" defer></script>' if comments else ''
     nav = [
         ("首页", "", "home"),
@@ -76,6 +79,7 @@ def layout(title: str, description: str, root: str, current: str, content: str, 
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="{escape(description, quote=True)}">
   <title>{escape(title)} · Leyang Xia</title>
+  {metadata(title, description, path, post, noindex)}
   <script>(function(){{var t;try{{t=localStorage.getItem('lx-theme')}}catch(e){{}}if(t!=='light'&&t!=='dark'){{var m=String(document.cookie||'').match(/(?:^|; )lx-theme=(dark|light)(?:;|$)/);t=m&&m[1]}}if(t!=='light'&&t!=='dark')t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}})();</script>
   <link rel="stylesheet" href="{link(root, 'assets/site.css')}">
   <script src="{link(root, 'assets/site.js')}" defer></script>
@@ -91,17 +95,18 @@ def layout(title: str, description: str, root: str, current: str, content: str, 
   </div></header>
   <main id="content">{content}</main>
   {search_dialog(root)}
-  <footer class="site-footer"><div class="container footer-inner"><span>© 2026 Leyang Xia</span><span>Built with curiosity.</span><a href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <footer class="site-footer"><div class="container footer-inner"><span>© 2026 Leyang Xia</span><span>Built with curiosity.</span><a href="{link(root, "feed.xml")}" title="订阅正式文章">RSS</a><a href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
 </body>
 </html>'''
 
 
 def post_row(post: dict, root: str) -> str:
     href = link(root, f'writing/{post["slug"]}/')
-    when = post['published_at'] if post['status'] == 'published' else '示例稿'
+    when = (f'<time datetime="{post["published_at"]}">{post["published_at"]}</time>'
+            if post['status'] == 'published' else '示例稿')
     tags = '|'.join(post['tags'])
     return f'''<a class="post-row" href="{escape(href, quote=True)}" data-tags="{escape(tags, quote=True)}">
-      <span class="post-index">{escape(when)}</span>
+      <span class="post-index">{when}</span>
       <span class="post-main"><span class="post-category">{escape(' · '.join(post['tags']))}</span><strong>{escape(post['title'])}</strong><span class="post-summary">{escape(post['summary'])}</span></span>
       <span class="post-arrow" aria-hidden="true">↗</span>
     </a>'''
@@ -153,13 +158,13 @@ def writing() -> str:
     <section class="container listing-section"><div class="listing-head"><span>所有内容</span><span>共 {len(all_posts)} 篇</span></div>
     <div class="tag-list archive-tags"><a class="tag-link" href="../writing/">全部</a>{tag_links(all_posts, '../')}</div>
     {''.join(years)}{sample_section}</section>'''
-    return layout('文库', '技术分享、学习记录与生活随笔。', '../', 'writing', content)
+    return layout('文库', '技术分享、学习记录与生活随笔。', '../', 'writing', content, path='writing/')
 
 
 def about() -> str:
     content = '''<section class="page-intro container"><p class="eyebrow">ABOUT / 关于</p><h1>你好，<br><span>我是 Leyang。</span></h1><p>这里是我分享发现、整理学习过程和记录生活的地方。</p></section>
     <section class="container about-layout"><div class="about-label">A LITTLE MORE</div><div class="prose"><p>我喜欢从一个具体问题出发，沿着代码和现象追下去，再试着用清楚的话讲出来。</p><p>有些文章分享有意思的技术，有些记录尚在学习的过程；生活中的观察也会出现在这里。</p><p>如果你读到感兴趣的内容，欢迎去文库继续探索，或在留言板打个招呼。</p><p><a class="inline-link" href="../writing/">进入文库 ↗</a><br><a class="inline-link" href="../guestbook/">前往留言板 ↗</a></p></div></section>'''
-    return layout("关于", "关于 Leyang Xia 和这个网站。", "../", "about", content)
+    return layout("关于", "关于 Leyang Xia 和这个网站。", "../", "about", content, path="about/")
 
 
 def comment_shell(path: str, env_id: str | None) -> str:
@@ -170,34 +175,50 @@ def comment_shell(path: str, env_id: str | None) -> str:
             f'<div id="comments" data-thread-path="{escape(path, quote=True)}" data-env-id="{address}" role="status">{initial}</div></section>')
 
 
+def article_navigation(post: dict) -> str:
+    published, samples = split_posts(POSTS)
+    ordered = published if post['status'] == 'published' else samples
+    index = next((i for i, item in enumerate(ordered) if item['slug'] == post['slug']), None)
+    if index is None:
+        return ''
+    links = []
+    for offset, rel, label in [(-1, 'prev', '上一篇'), (1, 'next', '下一篇')]:
+        neighbor = index + offset
+        if 0 <= neighbor < len(ordered):
+            item = ordered[neighbor]
+            links.append(f'<a rel="{rel}" href="../{item["slug"]}/"><span>{label}</span><strong>{escape(item["title"])}</strong></a>')
+    if not links:
+        return ''
+    return '<nav class="article-navigation" aria-label="文章导航">' + ''.join(links) + '</nav>'
+
+
 def article(post: dict) -> str:
     paragraphs = post['body_html']
-    other = [p for p in POSTS if p['slug'] != post['slug']]
-    next_link = (f'<div class="read-next"><span class="eyebrow">NEXT READ</span><a href="../{escape(other[0]["slug"], quote=True)}/">{escape(other[0]["title"])} ↗</a></div>' if other else '')
+    next_link = article_navigation(post)
     published = post['status'] == 'published'
-    when = post['published_at'] if published else '示例稿'
+    when = (f'<time datetime="{post["published_at"]}">{post["published_at"]}</time>' if published else '示例稿')
     cover = (f'<figure class="article-cover"><img src="../../{escape(post["cover"], quote=True)}" alt="" loading="lazy"></figure>' if post.get('cover') else '')
     from urllib.parse import quote
     tags = ''.join(f'<a class="tag-link" href="../../writing/?tag={quote(tag)}">{escape(tag)}</a>' for tag in post['tags'])
     content = f'''<article class="article-page container"><div class="article-narrow"><a class="back-link" href="../../writing/">← 返回文库</a>
       <p class="eyebrow">{'ARTICLE' if published else 'PREVIEW / 示例稿'}</p><h1>{escape(post['title'])}</h1><p class="article-deck">{escape(post['summary'])}</p>
-      <div class="article-meta"><span>{escape(when)}</span><span>LEYANG XIA</span></div>{cover}<div class="tag-list article-tags">{tags}</div>
+      <div class="article-meta"><span>{when}</span><span>LEYANG XIA</span></div>{cover}<div class="tag-list article-tags">{tags}</div>
       <div class="article-body">{paragraphs}</div><div class="article-end"><a class="inline-link" href="../../writing/">返回文库 ↗</a></div>
       {comment_shell('/writing/' + post['slug'] + '/', TWIKOO_ENV_ID)}</div>{next_link}</article>'''
-    return layout(post['title'], post['summary'], '../../', 'writing', content, comments=True)
+    return layout(post['title'], post['summary'], '../../', 'writing', content, comments=True, path=f'writing/{post["slug"]}/', post=post)
 
 
 def guestbook() -> str:
     content = ('<section class="page-intro container"><p class="eyebrow">GUESTBOOK / 留言板</p><h1>留下几句话。</h1>'
                '<p>关于一篇文章、一个问题，或最近的生活，都欢迎在这里聊聊。</p></section>'
                '<section class="container guestbook-content">' + comment_shell('/guestbook/', TWIKOO_ENV_ID) + '</section>')
-    return layout('留言板', '欢迎留下你的想法。', '../', 'guestbook', content, comments=True)
+    return layout('留言板', '欢迎留下你的想法。', '../', 'guestbook', content, comments=True, path='guestbook/')
 
 
 def not_found() -> str:
     content = '''<section class="page-intro container"><p class="eyebrow">404 / PAGE NOT FOUND</p><h1>这里没有页面。<br><span>换个地方看看。</span></h1><p>你访问的地址可能已经变更。可以回到首页，或从文章列表继续浏览。</p></section>
     <section class="container end-cta"><p>继续探索</p><div><a class="inline-link" href="/">返回首页 ↗</a>　<a class="inline-link" href="/writing/">浏览文章 ↗</a></div></section>'''
-    return layout("页面未找到", "你访问的页面不存在。", "/", "", content)
+    return layout("页面未找到", "你访问的页面不存在。", "/", "", content, path="404.html", noindex=True)
 
 
 def write(path: str, content: str) -> None:
@@ -241,9 +262,13 @@ def build_site() -> None:
     remove_stale_generated_files(OUT, ROOT.parent, old_paths, set(pages))
     for path, content in pages.items():
         write(path, content)
+    files = discovery_files(POSTS)
+    for path, content in files.items():
+        write(path, content)
     write('assets/search-index.json', json.dumps(search_index(), ensure_ascii=False, indent=2))
     manifest.write_text(json.dumps(sorted(pages), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    for source in [*(OUT / path for path in pages), *(OUT / 'assets').rglob('*')]:
+    check_site(OUT)
+    for source in [*(OUT / path for path in [*pages, *files]), *(OUT / 'assets').rglob('*')]:
         if source.is_file():
             target = ROOT.parent / source.relative_to(OUT)
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -6,6 +6,24 @@
   <meta name="theme-color" content="#f8f9fa">
   <meta name="description" content="从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？">
   <title>如何让一次音频实验可以重来 · Leyang Xia</title>
+  <link rel="canonical" href="https://leyang-xia.github.io/writing/reproducible-audio-experiments/">
+  <link rel="alternate" type="application/rss+xml" title="Leyang Xia" href="https://leyang-xia.github.io/feed.xml">
+  <meta name="robots" content="noindex, follow">
+  <meta property="og:title" content="如何让一次音频实验可以重来 · Leyang Xia">
+  <meta property="og:description" content="从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://leyang-xia.github.io/writing/reproducible-audio-experiments/">
+  <meta property="og:site_name" content="Leyang Xia">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:image" content="https://leyang-xia.github.io/assets/share-default.png">
+  <meta property="og:image:alt" content="Leyang Xia · Notes">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="如何让一次音频实验可以重来 · Leyang Xia">
+  <meta name="twitter:description" content="从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？">
+  <meta name="twitter:image" content="https://leyang-xia.github.io/assets/share-default.png">
+  <meta name="twitter:image:alt" content="Leyang Xia · Notes">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <script>(function(){var t;try{t=localStorage.getItem('lx-theme')}catch(e){}if(t!=='light'&&t!=='dark'){var m=String(document.cookie||'').match(/(?:^|; )lx-theme=(dark|light)(?:;|$)/);t=m&&m[1]}if(t!=='light'&&t!=='dark')t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t})();</script>
   <link rel="stylesheet" href="../../assets/site.css">
   <script src="../../assets/site.js" defer></script>
@@ -23,12 +41,12 @@
       <p class="eyebrow">PREVIEW / 示例稿</p><h1>如何让一次音频实验可以重来</h1><p class="article-deck">从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？</p>
       <div class="article-meta"><span>示例稿</span><span>LEYANG XIA</span></div><div class="tag-list article-tags"><a class="tag-link" href="../../writing/?tag=%E5%AE%9E%E9%AA%8C%E6%96%B9%E6%B3%95">实验方法</a></div>
       <div class="article-body"><section><h2>从问题开始</h2><p>做音频实验时，很容易先得到一张漂亮的图，再回头想它说明什么。更可靠的顺序是先写下问题：我们想比较的是编解码器、丢包恢复策略，还是整条实时链路的体验？问题不同，实验边界也不同。</p><p>如果关注真实通话，编码、发包、网络、接收缓冲和解码就都在结果里。只测试某个离线解码器可以回答更窄的问题，但不应把结论扩展到完整通话。</p></section><section><h2>固定可变的东西</h2><p>同一段输入音频、相同的采样率、相同的网络轨迹和随机种子，是比较两种方案的起点。网络损失还要记录实际发生的丢包率与连续丢包长度；配置中的目标值未必等于运行时的结果。</p><p>除了参数，也要保留软件版本和运行命令。这样一段时间后回看时，才知道曲线改变来自方案本身，还是来自输入、依赖或环境。</p></section><section><h2>让数字可以被听见</h2><p>平均延迟、字错误率或客观音质分数都很有用，却无法独自解释一次短暂的断音。最好同时保存处理前后的可播放音频，并挑选有代表性的片段复听。</p><p>一份好的实验记录不只是结论，也包括失败的样本、适用范围和仍然不确定的地方。可复现的意义，是让下一次判断建立在同一块地面上。</p></section></div><div class="article-end"><a class="inline-link" href="../../writing/">返回文库 ↗</a></div>
-      <section class="comment-section" aria-labelledby="comment-heading"><h2 id="comment-heading">讨论</h2><p class="comment-explainer">无需登录。昵称和内容必填，邮箱选填且不会公开；提交后会显示“等待审核”，留言与回复经审核后公开。</p><div id="comments" data-thread-path="/writing/reproducible-audio-experiments/" data-env-id="https://leyang-twikoo.netlify.app/.netlify/functions/twikoo" role="status">加载留言中…</div></section></div><div class="read-next"><span class="eyebrow">NEXT READ</span><a href="../packet-loss-listening/">丢包率之外，语音体验还取决于什么 ↗</a></div></article></main>
+      <section class="comment-section" aria-labelledby="comment-heading"><h2 id="comment-heading">讨论</h2><p class="comment-explainer">无需登录。昵称和内容必填，邮箱选填且不会公开；提交后会显示“等待审核”，留言与回复经审核后公开。</p><div id="comments" data-thread-path="/writing/reproducible-audio-experiments/" data-env-id="https://leyang-twikoo.netlify.app/.netlify/functions/twikoo" role="status">加载留言中…</div></section></div><nav class="article-navigation" aria-label="文章导航"><a rel="next" href="../packet-loss-listening/"><span>下一篇</span><strong>丢包率之外，语音体验还取决于什么</strong></a></nav></article></main>
   <dialog class="search-dialog" id="site-search" data-search-index="../../assets/search-index.json" aria-labelledby="search-title">
     <div class="search-head"><div><p class="eyebrow">SEARCH / 站内搜索</p><h2 id="search-title">寻找一篇文章</h2></div><button class="icon-button search-close" type="button" aria-label="关闭搜索" title="关闭搜索">×</button></div>
     <label class="search-field"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="search-query" type="search" placeholder="搜索文章、主题…" autocomplete="off" aria-label="搜索文章和页面"></label>
     <p class="search-status" id="search-status" aria-live="polite">打开搜索后加载内容</p><ul class="search-results" id="search-results"></ul><p class="search-empty" id="search-empty" hidden>没有找到相关内容，试试其他关键词。</p>
   </dialog>
-  <footer class="site-footer"><div class="container footer-inner"><span>© 2026 Leyang Xia</span><span>Built with curiosity.</span><a href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
+  <footer class="site-footer"><div class="container footer-inner"><span>© 2026 Leyang Xia</span><span>Built with curiosity.</span><a href="../../feed.xml" title="订阅正式文章">RSS</a><a href="https://github.com/Leyang-Xia" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
 </body>
 </html>
