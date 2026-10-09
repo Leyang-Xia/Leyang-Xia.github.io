@@ -179,22 +179,22 @@ def article_navigation(post: dict) -> str:
     published, samples = split_posts(POSTS)
     ordered = published if post['status'] == 'published' else samples
     index = next((i for i, item in enumerate(ordered) if item['slug'] == post['slug']), None)
-    if index is None:
-        return ''
-    links = []
+    links = ['<a class="article-library" href="../../writing/">返回文库</a>']
     for offset, rel, label in [(-1, 'prev', '上一篇'), (1, 'next', '下一篇')]:
-        neighbor = index + offset
-        if 0 <= neighbor < len(ordered):
+        neighbor = index + offset if index is not None else -1
+        if index is not None and 0 <= neighbor < len(ordered):
             item = ordered[neighbor]
-            links.append(f'<a rel="{rel}" href="../{item["slug"]}/"><span>{label}</span><strong>{escape(item["title"])}</strong></a>')
-    if not links:
-        return ''
+            anchor = f'<a rel="{rel}" href="../{item["slug"]}/"><span>{label}</span><strong>{escape(item["title"])}</strong></a>'
+            if rel == 'prev':
+                links.insert(0, anchor)
+            else:
+                links.append(anchor)
     return '<nav class="article-navigation" aria-label="文章导航">' + ''.join(links) + '</nav>'
 
 
 def article(post: dict) -> str:
     paragraphs = post['body_html']
-    next_link = article_navigation(post)
+    navigation = article_navigation(post)
     published = post['status'] == 'published'
     when = (f'<time datetime="{post["published_at"]}">{post["published_at"]}</time>' if published else '示例稿')
     cover = (f'<figure class="article-cover"><img src="../../{escape(post["cover"], quote=True)}" alt="" loading="lazy"></figure>' if post.get('cover') else '')
@@ -203,8 +203,8 @@ def article(post: dict) -> str:
     content = f'''<article class="article-page container"><div class="article-narrow"><a class="back-link" href="../../writing/">← 返回文库</a>
       <p class="eyebrow">{'ARTICLE' if published else 'PREVIEW / 示例稿'}</p><h1>{escape(post['title'])}</h1><p class="article-deck">{escape(post['summary'])}</p>
       <div class="article-meta"><span>{when}</span><span>LEYANG XIA</span></div>{cover}<div class="tag-list article-tags">{tags}</div>
-      <div class="article-body">{paragraphs}</div><div class="article-end"><a class="inline-link" href="../../writing/">返回文库 ↗</a></div>
-      {comment_shell('/writing/' + post['slug'] + '/', TWIKOO_ENV_ID)}</div>{next_link}</article>'''
+      <div class="article-body">{paragraphs}</div>{navigation}
+      {comment_shell('/writing/' + post['slug'] + '/', TWIKOO_ENV_ID)}</div></article>'''
     return layout(post['title'], post['summary'], '../../', 'writing', content, comments=True, path=f'writing/{post["slug"]}/', post=post)
 
 
