@@ -2,7 +2,57 @@
   function visibleForTag(rowTags, selectedTag, allTags) {
     return !selectedTag || !allTags.includes(selectedTag) || rowTags.includes(selectedTag);
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = { visibleForTag };
+  function createSearchLoader(url, request = fetch) {
+    let pending;
+    return function load() {
+      if (!pending) {
+        pending = (async () => {
+          const response = await request(url);
+          if (!response.ok) throw new Error(`Search index HTTP ${response.status}`);
+          const items = await response.json();
+          if (!Array.isArray(items) || !items.every(item => item &&
+            ['path', 'category', 'title', 'summary', 'text'].every(key => typeof item[key] === 'string') &&
+            /^(?:writing\/[a-z0-9]+(?:-[a-z0-9]+)*\/|guestbook\/|about\/)$/.test(item.path))) {
+            throw new Error('Invalid search index');
+          }
+          return items;
+        })().catch(error => {
+          pending = undefined;
+          throw error;
+        });
+      }
+      return pending;
+    };
+  }
+
+  function matchingSearchItems(items, query) {
+    const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    return items.filter(item => {
+      const text = [item.category, item.title, item.summary, item.text].join(' ').toLocaleLowerCase();
+      return terms.every(term => text.includes(term));
+    });
+  }
+
+  function renderSearchResults(list, items, root) {
+    const doc = list.ownerDocument;
+    list.replaceChildren(...items.map(item => {
+      const row = doc.createElement('li');
+      row.className = 'search-item';
+      const anchor = doc.createElement('a');
+      anchor.href = new URL(item.path, root).href;
+      for (const [tag, value] of [['span', item.category], ['strong', item.title], ['small', item.summary]]) {
+        const node = doc.createElement(tag);
+        node.textContent = value;
+        anchor.append(node);
+      }
+      row.append(anchor);
+      return row;
+    }));
+  }
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { visibleForTag, createSearchLoader, matchingSearchItems, renderSearchResults };
+  }
   if (typeof document === 'undefined') return;
 
   const archiveRows = Array.from(document.querySelectorAll('.listing-section [data-tags]'));
@@ -48,25 +98,36 @@
 
   const closeButton = dialog.querySelector('.search-close');
   const input = document.getElementById('search-query');
-  const items = Array.from(dialog.querySelectorAll('.search-item'));
+  const results = document.getElementById('search-results');
+  const indexURL = new URL(dialog.dataset.searchIndex, document.baseURI);
+  const siteRoot = new URL('../', indexURL);
+  const loadIndex = createSearchLoader(indexURL.href);
+  let searchVersion = 0;
   const status = document.getElementById('search-status');
   const empty = document.getElementById('search-empty');
 
-  function filterResults() {
-    const terms = input.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    let count = 0;
-    for (const item of items) {
-      const match = terms.every(term => item.dataset.search.includes(term));
-      item.hidden = !match;
-      if (match) count++;
+  async function filterResults() {
+    const version = ++searchVersion;
+    status.textContent = '加载搜索内容中…';
+    empty.hidden = true;
+    try {
+      const items = await loadIndex();
+      if (version !== searchVersion) return;
+      const matches = matchingSearchItems(items, input.value);
+      renderSearchResults(results, matches, siteRoot);
+      status.textContent = input.value.trim() ? `找到 ${matches.length} 条结果` : '全部内容';
+      empty.hidden = matches.length !== 0;
+    } catch (_) {
+      if (version !== searchVersion) return;
+      results.replaceChildren();
+      status.textContent = '搜索加载失败，请检查网络后重新打开搜索或输入关键词重试。';
     }
-    status.textContent = terms.length ? `找到 ${count} 条结果` : '全部内容';
-    empty.hidden = count !== 0;
   }
 
   function openSearch() {
     if (!dialog.open) dialog.showModal();
     input.focus();
+    filterResults();
   }
 
   searchButton.hidden = false;

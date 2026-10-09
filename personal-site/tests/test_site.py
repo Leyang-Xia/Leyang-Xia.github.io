@@ -1,14 +1,13 @@
 from copy import deepcopy
-from html.parser import HTMLParser
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import TestCase
 from unittest.mock import patch
 
 import build
+from site_fixtures import SiteTestCase
 
 
-class ContentTests(TestCase):
+class ContentTests(SiteTestCase):
     def test_samples_have_no_date(self):
         build.validate_posts(build.POSTS)
         published, samples = build.split_posts(build.POSTS)
@@ -61,7 +60,7 @@ class ContentTests(TestCase):
             build.validate_posts([post])
 
 
-class PageTests(TestCase):
+class PageTests(SiteTestCase):
     def test_archive_keeps_samples_out_of_year_groups(self):
         page = build.writing()
         self.assertIn('版式预览', page)
@@ -99,24 +98,11 @@ class PageTests(TestCase):
         self.assertIn('id="comments"', build.article(build.POSTS[0]))
         self.assertIn('示例稿', build.article(build.POSTS[0]))
 
-    def test_search_has_no_research_page(self):
-        page = build.search_dialog('../')
-        self.assertNotIn('研究方向', page)
-        self.assertIn('示例稿', page)
-
-    def test_search_indexes_article_tags(self):
-        class SearchItems(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.index = []
-            def handle_starttag(self, tag, attrs):
-                values = dict(attrs)
-                if tag == 'li' and values.get('class') == 'search-item':
-                    self.index.append(values['data-search'])
-        parser = SearchItems()
-        parser.feed(build.search_dialog('../'))
-        self.assertIn('实验方法', parser.index[0])
-        self.assertIn('实时音频', parser.index[1])
+    def test_search_shell_has_relative_index_and_no_embedded_articles(self):
+        page = build.search_dialog('../../')
+        self.assertIn('data-search-index="../../assets/search-index.json"', page)
+        self.assertNotIn(build.POSTS[0]['title'], page)
+        self.assertNotIn('data-search=', page)
 
     def test_cleanup_only_removes_old_generated_files(self):
         with TemporaryDirectory() as directory:
@@ -132,7 +118,7 @@ class PageTests(TestCase):
                 self.assertFalse((base / 'writing' / 'old.html').exists())
 
 
-class CommentTests(TestCase):
+class CommentTests(SiteTestCase):
     def test_guestbook_uses_public_twikoo_backend(self):
         page = build.guestbook()
         self.assertIn(

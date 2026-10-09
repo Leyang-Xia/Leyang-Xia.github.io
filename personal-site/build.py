@@ -1,82 +1,19 @@
 """Build the dependency-free static personal site into dist/."""
 
-from datetime import date
 from html import escape
 import os
 from pathlib import Path
-import re
 import shutil
 import json
+
+from content import load_posts, validate_posts as validate_content
 
 
 ROOT = Path(__file__).parent
 OUT = ROOT / "dist"
 TWIKOO_ENV_ID = os.getenv("TWIKOO_ENV_ID") or "https://leyang-twikoo.netlify.app/.netlify/functions/twikoo"
 
-POSTS = [
-    {
-        "slug": "reproducible-audio-experiments",
-        "title": "如何让一次音频实验可以重来",
-        "category": "技术 / 实验方法",
-        "summary": "从固定输入、网络条件到听感样本：一份结果真正值得信任，需要留下哪些线索？",
-        "number": "01",
-        "status": "sample", "published_at": None, "tags": ["实验方法"], "cover": None,
-        "sections": [
-            ("从问题开始", [
-                "做音频实验时，很容易先得到一张漂亮的图，再回头想它说明什么。更可靠的顺序是先写下问题：我们想比较的是编解码器、丢包恢复策略，还是整条实时链路的体验？问题不同，实验边界也不同。",
-                "如果关注真实通话，编码、发包、网络、接收缓冲和解码就都在结果里。只测试某个离线解码器可以回答更窄的问题，但不应把结论扩展到完整通话。",
-            ]),
-            ("固定可变的东西", [
-                "同一段输入音频、相同的采样率、相同的网络轨迹和随机种子，是比较两种方案的起点。网络损失还要记录实际发生的丢包率与连续丢包长度；配置中的目标值未必等于运行时的结果。",
-                "除了参数，也要保留软件版本和运行命令。这样一段时间后回看时，才知道曲线改变来自方案本身，还是来自输入、依赖或环境。",
-            ]),
-            ("让数字可以被听见", [
-                "平均延迟、字错误率或客观音质分数都很有用，却无法独自解释一次短暂的断音。最好同时保存处理前后的可播放音频，并挑选有代表性的片段复听。",
-                "一份好的实验记录不只是结论，也包括失败的样本、适用范围和仍然不确定的地方。可复现的意义，是让下一次判断建立在同一块地面上。",
-            ]),
-        ],
-    },
-    {
-        "slug": "packet-loss-listening",
-        "title": "丢包率之外，语音体验还取决于什么",
-        "category": "技术 / 实时音频",
-        "summary": "相同的平均丢包率，可能听起来完全不同。理解连续丢包、恢复策略与缓冲延迟之间的取舍。",
-        "number": "02",
-        "status": "sample", "published_at": None, "tags": ["实时音频"], "cover": None,
-        "sections": [
-            ("平均值会藏起形状", [
-                "一次通话丢掉百分之五的数据包，听感并不由“百分之五”单独决定。零散的单包丢失，和集中发生的一串丢失，会给接收端留下完全不同的恢复任务。",
-                "因此，描述网络条件时，除了平均丢包率，还需要看丢失的时间分布、连续长度、抖动和延迟。仅凭一个百分比比较算法，常常会漏掉最令人难受的片段。",
-            ]),
-            ("恢复总有代价", [
-                "接收端可以通过冗余信息、预测或缓冲等待来减轻丢包影响。但冗余占带宽，等待会增加延迟，预测也可能在长时间缺失时失真。没有一种策略能在所有网络条件下同时最优。",
-                "评价恢复效果时，要把它放回实时链路：发送端实际带来的开销是多少？接收端增加了多少等待？语音是否仍然容易理解？这些问题比单个音质分数更接近用户体验。",
-            ]),
-            ("把边界写清楚", [
-                "可比较的测试需要固定语料和网络轨迹，并报告每次运行实际观察到的损失情况。保留原音与接收后的音频，能让统计指标和人的听觉互相校验。",
-                "当某个方案在一类突发丢包下表现更好，结论应写成这个具体条件下的改善。边界清楚，结果才容易被别人在自己的场景中使用。",
-            ]),
-        ],
-    },
-    {
-        "slug": "room-for-observation",
-        "title": "给观察留一点时间",
-        "category": "日常 / 随笔",
-        "summary": "做事之外，也需要一些不急着产出结果的时刻。关于节奏、注意力和日常的小小记录。",
-        "number": "03",
-        "status": "sample", "published_at": None, "tags": ["随笔"], "cover": None,
-        "sections": [
-            ("不急着命名", [
-                "很多时候，我们习惯迅速给一件事归类：有用或无用，进步或停滞，值得或不值得。判断带来效率，也会让一些细节在被看清之前就消失。",
-                "偶尔放慢一点，不急着把想法写成结论，反而能看到它原来的样子。一次谈话里没有说完的话，一段路上光线的变化，或一个问题反复出现的原因，都是这样的细节。",
-            ]),
-            ("留白也是一种安排", [
-                "日程排满时，新的念头通常只能从旧任务之间的缝隙里挤出来。留白不一定意味着什么都不做；它也可以是读几页书、走一段路，或把一个问题放在心里多待一会儿。",
-                "我想在这里保留这样一个角落：记录尚未成熟的想法，也记录那些不需要被证明有用的瞬间。",
-            ]),
-        ],
-    },
-]
+POSTS = load_posts(ROOT / 'content/posts', OUT)
 
 
 def link(root: str, path: str = "") -> str:
@@ -84,26 +21,7 @@ def link(root: str, path: str = "") -> str:
 
 
 def validate_posts(posts: list[dict]) -> None:
-    slugs = [post['slug'] for post in posts]
-    if len(slugs) != len(set(slugs)):
-        raise ValueError('duplicate slug')
-    for post in posts:
-        if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', post['slug']):
-            raise ValueError('invalid slug')
-        if post['status'] not in {'sample', 'published'}:
-            raise ValueError('invalid status')
-        if not post.get('title') or not post.get('summary') or not isinstance(post.get('tags'), list):
-            raise ValueError('missing article metadata')
-        if post['status'] == 'published':
-            if not post.get('published_at'):
-                raise ValueError('published_at is required')
-            date.fromisoformat(post['published_at'])
-        elif post.get('published_at'):
-            raise ValueError('sample must not set published_at')
-        if post.get('cover'):
-            cover = Path(post['cover'])
-            if cover.is_absolute() or '..' in cover.parts or not cover.parts or cover.parts[0] != 'assets' or not (OUT / cover).is_file():
-                raise ValueError('cover must be an existing file in assets')
+    validate_content(posts, OUT)
 
 
 def split_posts(posts: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -113,31 +31,28 @@ def split_posts(posts: list[dict]) -> tuple[list[dict], list[dict]]:
     return published, samples
 
 
-def search_dialog(root: str) -> str:
-    items = []
-    for post in POSTS:
-        body = " ".join(
-            heading + " " + " ".join(paragraphs)
-            for heading, paragraphs in post["sections"]
-        )
-        items.append((
-            f'writing/{post["slug"]}/', '示例稿' if post['status'] == 'sample' else '文章',
-            post["title"], post["summary"], ' '.join(post['tags']) + ' ' + body,
-        ))
+def search_index() -> list[dict]:
+    items = [
+        dict(path=f'writing/{post["slug"]}/',
+             category='示例稿' if post['status'] == 'sample' else '文章',
+             title=post['title'], summary=post['summary'],
+             text=' '.join(post['tags']) + ' ' + post['body_text'])
+        for post in POSTS
+    ]
     items.extend([
-        ("guestbook/", "页面", "留言板", "欢迎留下你的想法。", "留言 评论 讨论"),
-        ("about/", "页面", "关于 Leyang", "关于我和这个网站。", "个人介绍 技术探索 日常记录 GitHub"),
+        dict(path='guestbook/', category='页面', title='留言板',
+             summary='欢迎留下你的想法。', text='留言 评论 讨论'),
+        dict(path='about/', category='页面', title='关于 Leyang',
+             summary='关于我和这个网站。', text='个人介绍 技术探索 日常记录 GitHub'),
     ])
-    results = "".join(
-        f'<li class="search-item" data-search="{escape(" ".join((category, title, summary, body)).lower(), quote=True)}">'
-        f'<a href="{link(root, path)}"><span>{escape(category)}</span>'
-        f'<strong>{escape(title)}</strong><small>{escape(summary)}</small></a></li>'
-        for path, category, title, summary, body in items
-    )
-    return f'''<dialog class="search-dialog" id="site-search" aria-labelledby="search-title">
+    return items
+
+
+def search_dialog(root: str) -> str:
+    return f'''<dialog class="search-dialog" id="site-search" data-search-index="{link(root, "assets/search-index.json")}" aria-labelledby="search-title">
     <div class="search-head"><div><p class="eyebrow">SEARCH / 站内搜索</p><h2 id="search-title">寻找一篇文章</h2></div><button class="icon-button search-close" type="button" aria-label="关闭搜索" title="关闭搜索">×</button></div>
     <label class="search-field"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="search-query" type="search" placeholder="搜索文章、主题…" autocomplete="off" aria-label="搜索文章和页面"></label>
-    <p class="search-status" id="search-status" aria-live="polite">全部内容</p><ul class="search-results" id="search-results">{results}</ul><p class="search-empty" id="search-empty" hidden>没有找到相关内容，试试其他关键词。</p>
+    <p class="search-status" id="search-status" aria-live="polite">打开搜索后加载内容</p><ul class="search-results" id="search-results"></ul><p class="search-empty" id="search-empty" hidden>没有找到相关内容，试试其他关键词。</p>
   </dialog>'''
 
 
@@ -256,10 +171,7 @@ def comment_shell(path: str, env_id: str | None) -> str:
 
 
 def article(post: dict) -> str:
-    paragraphs = ''.join(
-        f'<section><h2>{escape(heading)}</h2>' + ''.join(f'<p>{escape(paragraph)}</p>' for paragraph in items) + '</section>'
-        for heading, items in post['sections']
-    )
+    paragraphs = post['body_html']
     other = [p for p in POSTS if p['slug'] != post['slug']]
     next_link = (f'<div class="read-next"><span class="eyebrow">NEXT READ</span><a href="../{escape(other[0]["slug"], quote=True)}/">{escape(other[0]["title"])} ↗</a></div>' if other else '')
     published = post['status'] == 'published'
@@ -312,6 +224,8 @@ def remove_stale_generated_files(out: Path, publish_root: Path, old_paths: set[s
 
 
 def build_site() -> None:
+    global POSTS
+    POSTS = load_posts(ROOT / 'content/posts', OUT)
     validate_posts(POSTS)
     pages = {
         'index.html': home(),
@@ -327,6 +241,7 @@ def build_site() -> None:
     remove_stale_generated_files(OUT, ROOT.parent, old_paths, set(pages))
     for path, content in pages.items():
         write(path, content)
+    write('assets/search-index.json', json.dumps(search_index(), ensure_ascii=False, indent=2))
     manifest.write_text(json.dumps(sorted(pages), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     for source in [*(OUT / path for path in pages), *(OUT / 'assets').rglob('*')]:
         if source.is_file():

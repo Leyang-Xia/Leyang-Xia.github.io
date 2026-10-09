@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260">
+  <rect width="960" height="260" rx="16" fill="#eef1ff"/>
+  <path d="M40 130h50l20-30 20 60 20-90 20 120 20-100 20 80 20-50 20 10h70l20-40 20 80 20-60 20 40 20-20h300" fill="none" stroke="#315cf6" stroke-width="4"/>
+  <text x="40" y="225" font-family="sans-serif" font-size="22" fill="#1b1d21">Audio experiment / waveform</text>
+</svg>

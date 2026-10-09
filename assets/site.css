@@ -170,3 +170,33 @@ h1,h2,h3{letter-spacing:-.065em}
 [hidden]{display:none!important}
 @media(max-width:960px){.home-grid{grid-template-columns:minmax(0,1fr) 235px;gap:34px}.profile-card{padding:20px}.feature-card{grid-template-columns:1fr}.feature-art{min-height:230px}.feature-card img{height:230px}.home-intro h1{font-size:clamp(48px,6vw,68px)}}
 @media(max-width:720px){.home-grid{display:flex;flex-direction:column;padding-block:52px 90px}.home-main{display:contents}.home-intro{order:1;padding:20px 0 25px}.home-feature{order:2;margin-top:0;width:100%}.profile-card{order:3;position:static;width:100%}.latest-writing{order:4;width:100%}.home-tags{order:5;width:100%}.home-intro h1{font-size:clamp(44px,10vw,66px)}.home-intro>p:last-child{font-size:18px}.feature-card{grid-template-columns:1fr}.feature-copy{padding:26px}.home-grid .post-row,.listing-section .post-row{grid-template-columns:84px minmax(0,1fr) 20px;gap:12px}}
+
+/* Markdown writing: scoped to article bodies and existing theme variables. */
+.article-body h3{font-size:25px;line-height:1.4;margin:32px 0 18px}
+.article-body h4,.article-body h5,.article-body h6{font-size:21px;line-height:1.5;margin:28px 0 16px}
+.article-body a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.article-body ul,.article-body ol{font-size:19px;line-height:2;margin:0 0 23px;padding-left:1.6em}
+.article-body li{margin:6px 0}
+.article-body li>ul,.article-body li>ol{margin:8px 0 12px}
+.article-body li>p{margin-bottom:12px}
+.article-body blockquote{border-left:3px solid var(--line);padding-left:24px;margin:26px 0;color:var(--muted)}
+.article-body blockquote p{color:inherit}
+.article-body code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;background:var(--paper);border:1px solid var(--line);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+.article-body pre{max-width:100%;overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;margin:26px 0;line-height:1.7;font-size:16px;tab-size:4}
+.article-body pre code{border:0;padding:0;background:transparent;border-radius:0;font-size:inherit;overflow-wrap:normal}
+.article-body img{display:block;max-width:100%;height:auto;margin:20px auto;border-radius:8px}
+.article-body hr{border:0;border-top:1px solid var(--line);margin:36px 0}
+.article-body .table-scroll{max-width:100%;overflow-x:auto;margin:26px 0;border:1px solid var(--line);border-radius:8px}
+.article-body .table-scroll:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.article-body table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.7}
+.article-body th,.article-body td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);min-width:110px}
+.article-body th{background:var(--paper);font-weight:650}
+.article-body tbody tr:last-child td{border-bottom:0}
+.article-body .footnotes{font-size:15px;margin:24px 0 36px}
+.article-body .footnotes p,.article-body .footnotes ol{font-size:15px;line-height:1.85}
+.article-body .footnote-ref{font-size:.75em;scroll-margin-top:100px}
+.article-body .footnote-item{scroll-margin-top:100px}
+.article-body .footnote-backref{text-decoration:none;margin-left:4px}
+.article-body .contains-task-list{list-style:none;padding-left:1.25em}
+.article-body .task-list-item>input{margin:0 8px 0 -1.25em;accent-color:var(--accent)}
+@media(max-width:600px){.article-body ul,.article-body ol{font-size:18px}.article-body pre{padding:16px;font-size:14px}.article-body h3{font-size:23px}.article-body th,.article-body td{padding:10px 12px}.article-body blockquote{padding-left:18px}}

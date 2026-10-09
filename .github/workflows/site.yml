@@ -1,0 +1,37 @@
+name: Site validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python tests
+        run: PYTHONPATH=personal-site python3 -S -m unittest discover -s personal-site/tests -v
+      - name: Client tests
+        run: |
+          node personal-site/tests/test_archive_client.js
+          node personal-site/tests/test_comments_client.js
+          node personal-site/tests/test_search_client.js
+      - name: Build and check committed output
+        run: |
+          python3 -S personal-site/build.py
+          git diff --exit-code
+          if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+            echo "New generated files must also be committed:"
+            git ls-files --others --exclude-standard
+            exit 1
+          fi
